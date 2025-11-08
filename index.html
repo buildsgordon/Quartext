@@ -1,18 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <!--
-    Demo Version - Markdown WYSIWYG Editor
+    Demo2.html - Demo version without autosave (based on Production3)
     
-    This is a demo version for GitHub Pages hosting.
-    - No autosave functionality
-    - No localStorage/cookies
-    - Same rendering as Production2
-    - Download full version for local use with autosave
+    ALL FEATURES FROM PRODUCTION3:
+    - Toggle-aware formatting buttons (Bold, Italic, Strikethrough, Highlight)
+    - Selection wrapping works correctly - select text and click Bold to wrap it
+    - Selection is preserved when clicking formatting buttons
+    - Nested formatting like *italic**bold**italic* works correctly
+    - Bold text in lists persists properly
+    - Line-based editing (Obsidian-style)
+    - Collapsible headings
+    - Smart line numbers
+    
+    DEMO VERSION CHANGES:
+    - No autosave to localStorage
+    - No automatic content persistence
+    - Clean slate on every page load
+    - Perfect for demonstrations and testing
 -->
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Markdown WYSIWYG Editor — Demo</title>
+    <title>Markdown WYSIWYG Editor — Demo2 (No Autosave)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap"
@@ -345,17 +355,6 @@
             left: -9999px;
             box-sizing: border-box;
         }
-
-        /* Feedback Link Hover Effect */
-        #feedbackLink:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        #feedbackLink:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
     </style>
 </head>
 
@@ -390,38 +389,14 @@
 
         <div class="statusbar">
             <span id="status">Words: 0 | Characters: 0 | Lines: 0</span>
-            <span id="demo-notice" style="color: #666; font-size: 12px;">Demo Mode - Download full version for autosave</span>
         </div>
     </div>
-    
-    <!-- Feedback Link Button -->
-    <a href="https://forms.gle/85brLpJVBruTfKtw7" target="_blank" id="feedbackLink" style="
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-family: 'Roboto Mono', monospace;
-        font-size: 14px;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition: all 0.3s ease;
-        z-index: 1000;
-        cursor: pointer;
-    ">
-        💭 Feedback & Bug Reports
-    </a>
 </body>
 
 <!-- Mirror element removed - using smart auto-measuring line numbers instead -->
 
 <script>
     (() => {
-        const STORAGE_KEY = "marktext_autosave";
-
         // MarkdownRenderer class for parsing and rendering markdown
         class MarkdownRenderer {
             constructor() {
@@ -896,12 +871,9 @@
                     this.handleMultiLinePaste(currentLine, pastedLines, range);
                 }
 
-                // Update line numbers and trigger autosave
+                // Update line numbers
                 setTimeout(() => {
                     this.updateLineNumbers();
-                    if (this.autosaveManager) {
-                        this.autosaveManager.scheduleSave();
-                    }
                 }, 50);
             }
 
@@ -980,11 +952,6 @@
                 setTimeout(updateLineNumbers, 300);
 
                 setTimeout(() => {
-                    // Trigger autosave after paste (treat as edit operation)
-                    if (this.autosaveManager) {
-                        this.autosaveManager.scheduleSave();
-                    }
-
                     // Trigger input event to ensure all handlers are called
                     const inputEvent = new Event('input', { bubbles: true });
                     this.editor.dispatchEvent(inputEvent);
@@ -2335,17 +2302,55 @@
                     this.saveState = originalSaveState;
                 }
             }  
-          // Insert markdown syntax at cursor or around selection
-            insertMarkdownSyntax(startSyntax, endSyntax = '') {
+          // Insert or toggle markdown syntax at cursor or around selection
+            insertMarkdownSyntax(startSyntax, endSyntax = '', savedSelection = null) {
                 const currentLine = this.getCurrentLineElement();
                 if (!currentLine) return;
 
                 // Ensure line is in edit mode
                 if (!currentLine.classList.contains('editing')) {
+                    // Save the current selection before switching modes
+                    const selection = window.getSelection();
+                    let selectionInfo = null;
+                    
+                    if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        const selectedText = range.toString();
+                        const startOffset = range.startOffset;
+                        const endOffset = range.endOffset;
+                        const startContainer = range.startContainer;
+                        const endContainer = range.endContainer;
+                        
+                        selectionInfo = {
+                            text: selectedText,
+                            startOffset: startOffset,
+                            endOffset: endOffset,
+                            hasSelection: selectedText.length > 0
+                        };
+                    }
+                    
                     this.makeLineEditable(currentLine);
-                    // Give the line time to switch to edit mode
+                    
+                    // Give the line time to switch to edit mode, then restore selection
                     setTimeout(() => {
-                        this.insertMarkdownSyntax(startSyntax, endSyntax);
+                        if (selectionInfo && selectionInfo.hasSelection) {
+                            // Try to restore the selection in the now-editable line
+                            const textNode = currentLine.firstChild;
+                            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                                const newRange = document.createRange();
+                                const sel = window.getSelection();
+                                
+                                try {
+                                    newRange.setStart(textNode, Math.min(selectionInfo.startOffset, textNode.length));
+                                    newRange.setEnd(textNode, Math.min(selectionInfo.endOffset, textNode.length));
+                                    sel.removeAllRanges();
+                                    sel.addRange(newRange);
+                                } catch (e) {
+                                    // If restoration fails, just proceed with the saved info
+                                }
+                            }
+                        }
+                        this.insertMarkdownSyntax(startSyntax, endSyntax, selectionInfo);
                     }, 10);
                     return;
                 }
@@ -2354,40 +2359,115 @@
                 if (!selection.rangeCount) return;
 
                 const range = selection.getRangeAt(0);
-                const selectedText = range.toString();
+                let selectedText = savedSelection ? savedSelection.text : range.toString();
 
                 try {
-                    if (selectedText) {
-                        // Wrap selected text
-                        const wrappedText = startSyntax + selectedText + endSyntax;
-                        range.deleteContents();
-                        range.insertNode(document.createTextNode(wrappedText));
+                    if (selectedText && selectedText.length > 0) {
+                        // Get the full line text to check context
+                        const lineText = currentLine.textContent || '';
+                        const startPos = this.getCursorPositionInLine(currentLine) - selectedText.length;
+                        
+                        // Check if there are markers before and after the selection in the line
+                        const beforeText = lineText.substring(Math.max(0, startPos - startSyntax.length), startPos);
+                        const afterPos = startPos + selectedText.length;
+                        const afterText = lineText.substring(afterPos, afterPos + endSyntax.length);
+                        
+                        const hasMarkersAround = beforeText === startSyntax && afterText === endSyntax;
+                        
+                        if (hasMarkersAround) {
+                            // Remove the markers around the selection
+                            const beforeMarkerStart = Math.max(0, startPos - startSyntax.length);
+                            const afterMarkerEnd = afterPos + endSyntax.length;
+                            
+                            const newText = lineText.substring(0, beforeMarkerStart) + 
+                                          selectedText + 
+                                          lineText.substring(afterMarkerEnd);
+                            
+                            currentLine.textContent = newText;
+                            
+                            // Position cursor after the unformatted text
+                            setTimeout(() => {
+                                this.setCursorInLine(currentLine, beforeMarkerStart + selectedText.length);
+                            }, 0);
+                        } else {
+                            // Add formatting - wrap the selected text
+                            const wrappedText = startSyntax + selectedText + endSyntax;
+                            range.deleteContents();
+                            const textNode = document.createTextNode(wrappedText);
+                            range.insertNode(textNode);
 
-                        // Position cursor after the inserted text
-                        const newRange = document.createRange();
-                        newRange.setStartAfter(range.endContainer);
-                        newRange.collapse(true);
-                        selection.removeAllRanges();
-                        selection.addRange(newRange);
+                            // Position cursor after the wrapped text
+                            setTimeout(() => {
+                                const newPos = this.getCursorPositionInLine(currentLine);
+                                this.setCursorInLine(currentLine, newPos);
+                            }, 0);
+                        }
                     } else {
-                        // Insert syntax at cursor position
-                        const syntaxText = startSyntax + endSyntax;
-                        const textNode = document.createTextNode(syntaxText);
-                        range.insertNode(textNode);
+                        // No selection - check if cursor is inside formatted text
+                        const lineText = currentLine.textContent || '';
+                        const cursorPos = this.getCursorPositionInLine(currentLine);
+                        
+                        // Try to find if cursor is within formatted text
+                        const removed = this.tryRemoveFormattingAtCursor(currentLine, cursorPos, startSyntax, endSyntax);
+                        
+                        if (!removed) {
+                            // Insert syntax at cursor position
+                            const syntaxText = startSyntax + endSyntax;
+                            const textNode = document.createTextNode(syntaxText);
+                            range.insertNode(textNode);
 
-                        // Position cursor between start and end syntax
-                        if (endSyntax) {
-                            const newRange = document.createRange();
-                            newRange.setStart(textNode, startSyntax.length);
-                            newRange.collapse(true);
-                            selection.removeAllRanges();
-                            selection.addRange(newRange);
+                            // Position cursor between start and end syntax
+                            if (endSyntax) {
+                                const newRange = document.createRange();
+                                newRange.setStart(textNode, startSyntax.length);
+                                newRange.collapse(true);
+                                selection.removeAllRanges();
+                                selection.addRange(newRange);
+                            }
                         }
                     }
                 } catch (error) {
                     // Fallback: just insert the text
                     document.execCommand('insertText', false, startSyntax + (selectedText || '') + endSyntax);
                 }
+            }
+
+            // Try to remove formatting at cursor position
+            tryRemoveFormattingAtCursor(lineElement, cursorPos, startSyntax, endSyntax) {
+                const lineText = lineElement.textContent || '';
+                
+                // Find all occurrences of this formatting in the line
+                const startLen = startSyntax.length;
+                const endLen = endSyntax.length;
+                
+                let searchPos = 0;
+                while (searchPos < lineText.length) {
+                    const startIdx = lineText.indexOf(startSyntax, searchPos);
+                    if (startIdx === -1) break;
+                    
+                    const endIdx = lineText.indexOf(endSyntax, startIdx + startLen);
+                    if (endIdx === -1) break;
+                    
+                    // Check if cursor is within this formatted region
+                    if (cursorPos >= startIdx && cursorPos <= endIdx + endLen) {
+                        // Remove the formatting
+                        const before = lineText.substring(0, startIdx);
+                        const content = lineText.substring(startIdx + startLen, endIdx);
+                        const after = lineText.substring(endIdx + endLen);
+                        
+                        lineElement.textContent = before + content + after;
+                        
+                        // Position cursor in the unformatted content
+                        const newCursorPos = startIdx + Math.min(cursorPos - startIdx, content.length);
+                        this.setCursorInLine(lineElement, newCursorPos);
+                        
+                        return true;
+                    }
+                    
+                    searchPos = endIdx + endLen;
+                }
+                
+                return false;
             }
 
             // Apply formatting to selected text or at cursor
@@ -2458,20 +2538,36 @@
                 const selectedText = selection.getRangeAt(0).toString();
                 const lineText = currentLine.textContent || '';
 
-                const formatPatterns = {
-                    'bold': /^\*\*.*\*\*$/,
-                    'italic': /^\*.*\*$/,
-                    'strikethrough': /^~~.*~~$/,
-                    'highlight': /^==.*==$/,
-                    'h1': /^# /,
-                    'h2': /^## /,
-                    'h3': /^### /
+                const formatMap = {
+                    'bold': ['**', '**'],
+                    'italic': ['*', '*'],
+                    'strikethrough': ['~~', '~~'],
+                    'highlight': ['==', '=='],
+                    'h1': ['# ', ''],
+                    'h2': ['## ', ''],
+                    'h3': ['### ', '']
                 };
 
-                if (selectedText) {
-                    return formatPatterns[type] ? formatPatterns[type].test(selectedText) : false;
+                if (!formatMap[type]) return false;
+                
+                const [startSyntax, endSyntax] = formatMap[type];
+
+                if (selectedText && selectedText.length > 0) {
+                    // Check if selection is surrounded by markers in the line
+                    const cursorPos = this.getCursorPositionInLine(currentLine);
+                    const startPos = cursorPos - selectedText.length;
+                    
+                    const beforeText = lineText.substring(Math.max(0, startPos - startSyntax.length), startPos);
+                    const afterPos = startPos + selectedText.length;
+                    const afterText = lineText.substring(afterPos, afterPos + endSyntax.length);
+                    
+                    return beforeText === startSyntax && afterText === endSyntax;
                 } else {
-                    return formatPatterns[type] ? formatPatterns[type].test(lineText) : false;
+                    // Check if line starts with heading marker
+                    if (type.startsWith('h')) {
+                        return lineText.startsWith(startSyntax);
+                    }
+                    return false;
                 }
             }       
      // Handle Enter key for list continuation
@@ -2938,11 +3034,31 @@
             }
 
             setupEventListeners() {
-                // Basic formatting buttons
-                this.buttons.bold.addEventListener('click', () => this.toggleFormatting('bold'));
-                this.buttons.italic.addEventListener('click', () => this.toggleFormatting('italic'));
-                this.buttons.strikethrough.addEventListener('click', () => this.toggleFormatting('strikethrough'));
-                this.buttons.highlight.addEventListener('click', () => this.toggleFormatting('highlight'));
+                // Basic formatting buttons - prevent default and use mousedown to preserve selection
+                this.buttons.bold.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('bold');
+                });
+                this.buttons.italic.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('italic');
+                });
+                this.buttons.strikethrough.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('strikethrough');
+                });
+                this.buttons.highlight.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('highlight');
+                });
 
                 // Heading buttons
                 this.buttons.h1.addEventListener('click', () => this.applyHeading('h1'));
@@ -2965,12 +3081,65 @@
                 });
             }
 
-            toggleFormatting(type) {
-                if (this.editingController.hasFormatting(type)) {
-                    this.editingController.removeFormatting(type);
-                } else {
-                    this.editingController.applyFormatting(type);
+            // Save current selection state
+            saveSelection() {
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return null;
+
+                const range = selection.getRangeAt(0);
+                const selectedText = range.toString();
+                
+                return {
+                    text: selectedText,
+                    startContainer: range.startContainer,
+                    startOffset: range.startOffset,
+                    endContainer: range.endContainer,
+                    endOffset: range.endOffset,
+                    hasSelection: selectedText.length > 0
+                };
+            }
+
+            // Restore saved selection
+            restoreSelection(savedSelection) {
+                if (!savedSelection) return false;
+
+                try {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    
+                    range.setStart(savedSelection.startContainer, savedSelection.startOffset);
+                    range.setEnd(savedSelection.endContainer, savedSelection.endOffset);
+                    
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    return true;
+                } catch (e) {
+                    return false;
                 }
+            }
+
+            toggleFormatting(type) {
+                // Restore the saved selection first
+                if (this.savedSelection) {
+                    this.restoreSelection(this.savedSelection);
+                }
+
+                // Use the same logic as keyboard shortcuts
+                const formatMap = {
+                    'bold': ['**', '**'],
+                    'italic': ['*', '*'],
+                    'strikethrough': ['~~', '~~'],
+                    'highlight': ['==', '==']
+                };
+
+                if (formatMap[type]) {
+                    const [start, end] = formatMap[type];
+                    this.editingController.insertMarkdownSyntax(start, end);
+                }
+                
+                // Clear saved selection after use
+                this.savedSelection = null;
+                
                 this.updateButtonStates();
             }
 
@@ -3004,7 +3173,36 @@
             }
 
             insertHorizontalRule() {
-                this.editingController.insertMarkdownSyntax('\n---\n');
+                const currentLine = this.editingController.getCurrentLineElement();
+                if (!currentLine) return;
+
+                // Ensure line is in edit mode
+                if (!currentLine.classList.contains('editing')) {
+                    this.editingController.makeLineEditable(currentLine);
+                }
+
+                // Insert --- on a new line
+                const newLineDiv = document.createElement('div');
+                newLineDiv.className = 'editor-line editing';
+                newLineDiv.textContent = '---';
+                
+                currentLine.parentNode.insertBefore(newLineDiv, currentLine.nextSibling);
+                
+                // Create another new line after the HR for typing
+                const afterLineDiv = document.createElement('div');
+                afterLineDiv.className = 'editor-line editing';
+                afterLineDiv.textContent = '\u200B';
+                
+                newLineDiv.parentNode.insertBefore(afterLineDiv, newLineDiv.nextSibling);
+                
+                // Update line indices
+                this.editingController.updateLineIndices();
+                
+                // Position cursor in the line after the HR
+                setTimeout(() => {
+                    this.editingController.setCursorInLine(afterLineDiv, 0);
+                    this.editingController.currentEditingLineElement = afterLineDiv;
+                }, 10);
             }
 
             updateButtonStates() {
@@ -3026,27 +3224,41 @@
             }
         }
 
-        // DemoManager class - No localStorage, just initialization
-        class DemoManager {
-            constructor(editor, editingController, renderer) {
-                this.editor = editor;
-                this.editingController = editingController;
-                this.renderer = renderer;
-            }
+        const editor = document.getElementById("editor");
+        const lineNumbers = document.getElementById("lineNumbers");
+        const status = document.getElementById("status");
+        const saveBtn = document.getElementById("saveBtn");
+        const themeBtn = document.getElementById("themeBtn");
+        const clearBtn = document.getElementById("clearBtn");
 
-            // Get current content as markdown
-            getCurrentContent() {
-                if (this.editingController.getAllContent) {
-                    return this.editingController.getAllContent();
-                }
-                return this.editor.textContent || '';
-            }
+        // Initialize all components with better error handling
+        let markdownRenderer, editingController, toolbarController;
 
-            // Initialize editor with demo content
-            loadDemoContent() {
+        try {
+            markdownRenderer = new MarkdownRenderer();
+            editingController = new EditingController(editor, markdownRenderer);
+            toolbarController = new ToolbarController(editingController);
+
+            // Load demo content
+            loadDemoContent();
+
+        } catch (error) {
+            // Fallback initialization
+            setTimeout(() => {
                 try {
-                    // Set Quartext default content
-                    const demoContent = `# Quartext
+                    loadDemoContent();
+                } catch (e) {
+                    // Silent fallback - just initialize empty
+                    editingController.initializeEditor();
+                }
+            }, 500);
+        }
+
+        // Function to load demo content
+        function loadDemoContent() {
+            try {
+                // Set Quartext demo content
+                const demoContent = `# Quartext
 A single-pane, lightweight Markdown editor that's *seamlessly built into your browser.*
 
 - 💭 Bugs, Feedback or Requests *(click bottom link to direct to forms)*
@@ -3088,7 +3300,7 @@ Headers are *collapsible!*
 
 1. **Keyboard shortcuts** — Ctrl+B (bold), Ctrl+I (italic), Ctrl+Shift+C (copy all)
 2. **Collapsible headings**
-3. **Autosave** — your data stays in your browser
+3. **Line-based editing** — Click any line to edit, click away to format
 4. **Line numbers**
 5. **Light & Dark themes**
 
@@ -3106,90 +3318,58 @@ Headers are *collapsible!*
 - **GitHub Repo:** [github.com/buildsgordon/Quartext](https://github.com/buildsgordon/Quartext)
 - **Feedback / Suggestions:** buildsgordon@gmail.com`;
 
-                    this.editor.textContent = demoContent;
+                editor.textContent = demoContent;
 
-                    // Initialize the editor with retry logic
-                    const initializeWithRetry = (attempt = 1) => {
-                        try {
-                            if (this.editingController && this.editingController.initializeEditor) {
-                                this.editingController.initializeEditor();
+                // Initialize the editor with retry logic
+                const initializeWithRetry = (attempt = 1) => {
+                    try {
+                        if (editingController && editingController.initializeEditor) {
+                            editingController.initializeEditor();
 
-                                setTimeout(() => {
-                                    const lines = this.editor.querySelectorAll('.editor-line');
-                                    if (lines.length === 0 && attempt < 3) {
-                                        initializeWithRetry(attempt + 1);
-                                    } else {
-                                        this.editingController.updateLineNumbersNow();
+                            setTimeout(() => {
+                                const lines = editor.querySelectorAll('.editor-line');
+                                if (lines.length === 0 && attempt < 3) {
+                                    initializeWithRetry(attempt + 1);
+                                } else {
+                                    // Force line number update after successful initialization
+                                    editingController.updateLineNumbersNow();
+
+                                    // Force re-render all lines to ensure proper formatting
+                                    setTimeout(() => {
+                                        editingController.forceRenderAllLines();
+
+                                        // Trigger a blur/focus cycle to force formatting
                                         setTimeout(() => {
-                                            this.editingController.forceRenderAllLines();
-                                        }, 200);
-                                    }
-                                }, 100);
-                            } else if (attempt < 3) {
+                                            editor.blur();
+                                            setTimeout(() => {
+                                                editor.focus();
+                                            }, 50);
+                                        }, 100);
+                                    }, 200);
+                                }
+                            }, 100);
+                        } else {
+                            if (attempt < 3) {
                                 setTimeout(() => initializeWithRetry(attempt + 1), 200);
                             }
-                        } catch (initError) {
-                            if (attempt < 3) {
-                                setTimeout(() => initializeWithRetry(attempt + 1), 300);
-                            }
                         }
-                    };
-
-                    setTimeout(() => initializeWithRetry(), 200);
-
-                } catch (error) {
-                    // Force initialization even if loading failed
-                    setTimeout(() => {
-                        if (this.editingController && this.editingController.initializeEditor) {
-                            this.editingController.initializeEditor();
+                    } catch (initError) {
+                        if (attempt < 3) {
+                            setTimeout(() => initializeWithRetry(attempt + 1), 300);
                         }
-                    }, 300);
-                }
+                    }
+                };
+
+                setTimeout(() => initializeWithRetry(), 200);
+
+            } catch (error) {
+                // Force initialization even if loading failed
+                setTimeout(() => {
+                    if (editingController && editingController.initializeEditor) {
+                        editingController.initializeEditor();
+                    }
+                }, 300);
             }
-
-            // No-op methods for compatibility
-            scheduleSave() {
-                // Demo mode - no saving
-            }
-
-            // Export content for manual save
-            exportContent() {
-                return this.getCurrentContent();
-            }
-        }
-
-        const editor = document.getElementById("editor");
-        const lineNumbers = document.getElementById("lineNumbers");
-        const status = document.getElementById("status");
-        const saveBtn = document.getElementById("saveBtn");
-        const themeBtn = document.getElementById("themeBtn");
-
-        // Initialize all components with better error handling
-        let markdownRenderer, editingController, toolbarController, demoManager;
-
-        try {
-            markdownRenderer = new MarkdownRenderer();
-            editingController = new EditingController(editor, markdownRenderer);
-            toolbarController = new ToolbarController(editingController);
-            demoManager = new DemoManager(editor, editingController, markdownRenderer);
-
-            // Set reference for demo manager in editing controller (for compatibility)
-            editingController.autosaveManager = demoManager;
-
-            // Load demo content with delay to ensure DOM is ready
-            setTimeout(() => {
-                demoManager.loadDemoContent();
-            }, 100);
-
-        } catch (error) {
-            // Fallback initialization
-            setTimeout(() => {
-                try {
-                    demoManager.loadDemoContent();
-                } catch (e) {
-                    // Silent fallback
-                }
-            }, 500);
         }
 
         // Get text content from contentEditable, preserving line breaks
@@ -3327,8 +3507,8 @@ Headers are *collapsible!*
 
             lastInputTime = currentTime;
 
-            // Demo mode - no autosave
-            // The EditingController handles line number updates
+            // DISABLED: Global updateAll to prevent double rendering
+            // The EditingController now handles line number updates more efficiently
         });
 
         // On font load, window resize or orientation change recompute
@@ -3354,7 +3534,7 @@ Headers are *collapsible!*
         copyAllBtn.addEventListener("click", async () => {
             try {
                 // Get the raw markdown content
-                const content = demoManager ? demoManager.exportContent() : getEditorText();
+                const content = getEditorText();
                 
                 // Copy to clipboard using the Clipboard API
                 await navigator.clipboard.writeText(content);
@@ -3373,7 +3553,7 @@ Headers are *collapsible!*
             } catch (err) {
                 // Fallback for older browsers
                 try {
-                    const content = demoManager ? demoManager.exportContent() : getEditorText();
+                    const content = getEditorText();
                     const textarea = document.createElement("textarea");
                     textarea.value = content;
                     textarea.style.position = "fixed";
@@ -3411,11 +3591,11 @@ Headers are *collapsible!*
         });
 
         saveBtn.addEventListener("click", () => {
-            const content = demoManager ? demoManager.exportContent() : getEditorText();
+            const content = getEditorText();
             const blob = new Blob([content], { type: "text/markdown" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = "markdown-demo-export.md";
+            a.download = "notes.md";
             a.click();
         });
 
@@ -3459,10 +3639,7 @@ Headers are *collapsible!*
             }
         };
 
-        // Demo version - no localStorage debugging needed
-        window.debugStorage = function () {
-            console.log('Demo mode - no localStorage used');
-        };
+        // Demo version - no localStorage functionality
 
         // Global function to manually test the rendering pipeline
         window.testPipeline = function (testContent) {
@@ -3530,8 +3707,6 @@ Headers are *collapsible!*
         requestAnimationFrame(() => {
             try {
                 updateAll();
-
-                // Editor initialization is handled by DemoManager
             } catch (error) {
                 // Fallback to basic functionality
                 editor.focus();
