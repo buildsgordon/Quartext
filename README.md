@@ -10,8 +10,6 @@ A single-pane, lightweight Markdown editor that runs **entirely in your browser*
 Unlike full-featured apps such as Obsidian or MarkText, Quartext focuses on **instant note-taking**
 (jotting down quick thoughts, lists, or ideas)
 
-It’s your **digital sticky note pad** — open the tab, type, and go.
-
 ---
 
 ## Features
@@ -47,10 +45,11 @@ Headers are collapsible!
 # Philosophy
 
 Quartext isn’t designed for heavy research or long documents.
-It's always there when you need it, and it always work, even without wifi!
+It's always there when you need it, and it will always work, even without wifi!
 
 ⚠️ Known Issues:
 Some cases require clicking a “broken” line and clicking off to correct rendering.
+
 Collapsed header states aren’t preserved after reload.
 
 We’d love your feedback!
