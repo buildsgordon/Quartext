@@ -1,19 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <!--
-    Production2.html - Fixed version with proper markdown persistence
+    Production3.html - Fixed version with toggle-aware formatting buttons
     
-    FIXES:
+    FIXES FROM PRODUCTION2:
     - Bold text in lists (ordered/unordered) now persists on reload
     - Nested formatting like *italic**bold**italic* now works correctly
     - extractInlineMarkdown now recursively handles nested HTML elements
     - parseInlineFormatting processes bold before italic to handle nesting
     - All markdown syntax is properly preserved in localStorage
+    
+    NEW IN PRODUCTION3:
+    - Toolbar buttons now toggle formatting on/off intelligently
+    - If text is already formatted, clicking the button removes the markdown
+    - If cursor is inside formatted text, clicking removes that formatting
+    - If text is not formatted, clicking adds the markdown
+    - Works like standard word processor formatting buttons
+    
+    LATEST FIX:
+    - Selection wrapping now works correctly!
+    - When you select text and click Bold, it wraps the text: hello → **hello**
+    - Selection is preserved when switching between edit/formatted modes
+    - No more markers appearing at cursor instead of around selection
 -->
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Markdown WYSIWYG Editor — Production2 (Fixed Persistence)</title>
+    <title>Markdown WYSIWYG Editor — Production3 (Toggle Formatting)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap"
@@ -2304,17 +2317,55 @@
                     this.saveState = originalSaveState;
                 }
             }  
-          // Insert markdown syntax at cursor or around selection
-            insertMarkdownSyntax(startSyntax, endSyntax = '') {
+          // Insert or toggle markdown syntax at cursor or around selection
+            insertMarkdownSyntax(startSyntax, endSyntax = '', savedSelection = null) {
                 const currentLine = this.getCurrentLineElement();
                 if (!currentLine) return;
 
                 // Ensure line is in edit mode
                 if (!currentLine.classList.contains('editing')) {
+                    // Save the current selection before switching modes
+                    const selection = window.getSelection();
+                    let selectionInfo = null;
+                    
+                    if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        const selectedText = range.toString();
+                        const startOffset = range.startOffset;
+                        const endOffset = range.endOffset;
+                        const startContainer = range.startContainer;
+                        const endContainer = range.endContainer;
+                        
+                        selectionInfo = {
+                            text: selectedText,
+                            startOffset: startOffset,
+                            endOffset: endOffset,
+                            hasSelection: selectedText.length > 0
+                        };
+                    }
+                    
                     this.makeLineEditable(currentLine);
-                    // Give the line time to switch to edit mode
+                    
+                    // Give the line time to switch to edit mode, then restore selection
                     setTimeout(() => {
-                        this.insertMarkdownSyntax(startSyntax, endSyntax);
+                        if (selectionInfo && selectionInfo.hasSelection) {
+                            // Try to restore the selection in the now-editable line
+                            const textNode = currentLine.firstChild;
+                            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                                const newRange = document.createRange();
+                                const sel = window.getSelection();
+                                
+                                try {
+                                    newRange.setStart(textNode, Math.min(selectionInfo.startOffset, textNode.length));
+                                    newRange.setEnd(textNode, Math.min(selectionInfo.endOffset, textNode.length));
+                                    sel.removeAllRanges();
+                                    sel.addRange(newRange);
+                                } catch (e) {
+                                    // If restoration fails, just proceed with the saved info
+                                }
+                            }
+                        }
+                        this.insertMarkdownSyntax(startSyntax, endSyntax, selectionInfo);
                     }, 10);
                     return;
                 }
@@ -2323,40 +2374,115 @@
                 if (!selection.rangeCount) return;
 
                 const range = selection.getRangeAt(0);
-                const selectedText = range.toString();
+                let selectedText = savedSelection ? savedSelection.text : range.toString();
 
                 try {
-                    if (selectedText) {
-                        // Wrap selected text
-                        const wrappedText = startSyntax + selectedText + endSyntax;
-                        range.deleteContents();
-                        range.insertNode(document.createTextNode(wrappedText));
+                    if (selectedText && selectedText.length > 0) {
+                        // Get the full line text to check context
+                        const lineText = currentLine.textContent || '';
+                        const startPos = this.getCursorPositionInLine(currentLine) - selectedText.length;
+                        
+                        // Check if there are markers before and after the selection in the line
+                        const beforeText = lineText.substring(Math.max(0, startPos - startSyntax.length), startPos);
+                        const afterPos = startPos + selectedText.length;
+                        const afterText = lineText.substring(afterPos, afterPos + endSyntax.length);
+                        
+                        const hasMarkersAround = beforeText === startSyntax && afterText === endSyntax;
+                        
+                        if (hasMarkersAround) {
+                            // Remove the markers around the selection
+                            const beforeMarkerStart = Math.max(0, startPos - startSyntax.length);
+                            const afterMarkerEnd = afterPos + endSyntax.length;
+                            
+                            const newText = lineText.substring(0, beforeMarkerStart) + 
+                                          selectedText + 
+                                          lineText.substring(afterMarkerEnd);
+                            
+                            currentLine.textContent = newText;
+                            
+                            // Position cursor after the unformatted text
+                            setTimeout(() => {
+                                this.setCursorInLine(currentLine, beforeMarkerStart + selectedText.length);
+                            }, 0);
+                        } else {
+                            // Add formatting - wrap the selected text
+                            const wrappedText = startSyntax + selectedText + endSyntax;
+                            range.deleteContents();
+                            const textNode = document.createTextNode(wrappedText);
+                            range.insertNode(textNode);
 
-                        // Position cursor after the inserted text
-                        const newRange = document.createRange();
-                        newRange.setStartAfter(range.endContainer);
-                        newRange.collapse(true);
-                        selection.removeAllRanges();
-                        selection.addRange(newRange);
+                            // Position cursor after the wrapped text
+                            setTimeout(() => {
+                                const newPos = this.getCursorPositionInLine(currentLine);
+                                this.setCursorInLine(currentLine, newPos);
+                            }, 0);
+                        }
                     } else {
-                        // Insert syntax at cursor position
-                        const syntaxText = startSyntax + endSyntax;
-                        const textNode = document.createTextNode(syntaxText);
-                        range.insertNode(textNode);
+                        // No selection - check if cursor is inside formatted text
+                        const lineText = currentLine.textContent || '';
+                        const cursorPos = this.getCursorPositionInLine(currentLine);
+                        
+                        // Try to find if cursor is within formatted text
+                        const removed = this.tryRemoveFormattingAtCursor(currentLine, cursorPos, startSyntax, endSyntax);
+                        
+                        if (!removed) {
+                            // Insert syntax at cursor position
+                            const syntaxText = startSyntax + endSyntax;
+                            const textNode = document.createTextNode(syntaxText);
+                            range.insertNode(textNode);
 
-                        // Position cursor between start and end syntax
-                        if (endSyntax) {
-                            const newRange = document.createRange();
-                            newRange.setStart(textNode, startSyntax.length);
-                            newRange.collapse(true);
-                            selection.removeAllRanges();
-                            selection.addRange(newRange);
+                            // Position cursor between start and end syntax
+                            if (endSyntax) {
+                                const newRange = document.createRange();
+                                newRange.setStart(textNode, startSyntax.length);
+                                newRange.collapse(true);
+                                selection.removeAllRanges();
+                                selection.addRange(newRange);
+                            }
                         }
                     }
                 } catch (error) {
                     // Fallback: just insert the text
                     document.execCommand('insertText', false, startSyntax + (selectedText || '') + endSyntax);
                 }
+            }
+
+            // Try to remove formatting at cursor position
+            tryRemoveFormattingAtCursor(lineElement, cursorPos, startSyntax, endSyntax) {
+                const lineText = lineElement.textContent || '';
+                
+                // Find all occurrences of this formatting in the line
+                const startLen = startSyntax.length;
+                const endLen = endSyntax.length;
+                
+                let searchPos = 0;
+                while (searchPos < lineText.length) {
+                    const startIdx = lineText.indexOf(startSyntax, searchPos);
+                    if (startIdx === -1) break;
+                    
+                    const endIdx = lineText.indexOf(endSyntax, startIdx + startLen);
+                    if (endIdx === -1) break;
+                    
+                    // Check if cursor is within this formatted region
+                    if (cursorPos >= startIdx && cursorPos <= endIdx + endLen) {
+                        // Remove the formatting
+                        const before = lineText.substring(0, startIdx);
+                        const content = lineText.substring(startIdx + startLen, endIdx);
+                        const after = lineText.substring(endIdx + endLen);
+                        
+                        lineElement.textContent = before + content + after;
+                        
+                        // Position cursor in the unformatted content
+                        const newCursorPos = startIdx + Math.min(cursorPos - startIdx, content.length);
+                        this.setCursorInLine(lineElement, newCursorPos);
+                        
+                        return true;
+                    }
+                    
+                    searchPos = endIdx + endLen;
+                }
+                
+                return false;
             }
 
             // Apply formatting to selected text or at cursor
@@ -2427,20 +2553,36 @@
                 const selectedText = selection.getRangeAt(0).toString();
                 const lineText = currentLine.textContent || '';
 
-                const formatPatterns = {
-                    'bold': /^\*\*.*\*\*$/,
-                    'italic': /^\*.*\*$/,
-                    'strikethrough': /^~~.*~~$/,
-                    'highlight': /^==.*==$/,
-                    'h1': /^# /,
-                    'h2': /^## /,
-                    'h3': /^### /
+                const formatMap = {
+                    'bold': ['**', '**'],
+                    'italic': ['*', '*'],
+                    'strikethrough': ['~~', '~~'],
+                    'highlight': ['==', '=='],
+                    'h1': ['# ', ''],
+                    'h2': ['## ', ''],
+                    'h3': ['### ', '']
                 };
 
-                if (selectedText) {
-                    return formatPatterns[type] ? formatPatterns[type].test(selectedText) : false;
+                if (!formatMap[type]) return false;
+                
+                const [startSyntax, endSyntax] = formatMap[type];
+
+                if (selectedText && selectedText.length > 0) {
+                    // Check if selection is surrounded by markers in the line
+                    const cursorPos = this.getCursorPositionInLine(currentLine);
+                    const startPos = cursorPos - selectedText.length;
+                    
+                    const beforeText = lineText.substring(Math.max(0, startPos - startSyntax.length), startPos);
+                    const afterPos = startPos + selectedText.length;
+                    const afterText = lineText.substring(afterPos, afterPos + endSyntax.length);
+                    
+                    return beforeText === startSyntax && afterText === endSyntax;
                 } else {
-                    return formatPatterns[type] ? formatPatterns[type].test(lineText) : false;
+                    // Check if line starts with heading marker
+                    if (type.startsWith('h')) {
+                        return lineText.startsWith(startSyntax);
+                    }
+                    return false;
                 }
             }       
      // Handle Enter key for list continuation
@@ -2907,11 +3049,31 @@
             }
 
             setupEventListeners() {
-                // Basic formatting buttons
-                this.buttons.bold.addEventListener('click', () => this.toggleFormatting('bold'));
-                this.buttons.italic.addEventListener('click', () => this.toggleFormatting('italic'));
-                this.buttons.strikethrough.addEventListener('click', () => this.toggleFormatting('strikethrough'));
-                this.buttons.highlight.addEventListener('click', () => this.toggleFormatting('highlight'));
+                // Basic formatting buttons - prevent default and use mousedown to preserve selection
+                this.buttons.bold.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('bold');
+                });
+                this.buttons.italic.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('italic');
+                });
+                this.buttons.strikethrough.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('strikethrough');
+                });
+                this.buttons.highlight.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Save selection before button gets focus
+                    this.savedSelection = this.saveSelection();
+                    this.toggleFormatting('highlight');
+                });
 
                 // Heading buttons
                 this.buttons.h1.addEventListener('click', () => this.applyHeading('h1'));
@@ -2934,12 +3096,65 @@
                 });
             }
 
-            toggleFormatting(type) {
-                if (this.editingController.hasFormatting(type)) {
-                    this.editingController.removeFormatting(type);
-                } else {
-                    this.editingController.applyFormatting(type);
+            // Save current selection state
+            saveSelection() {
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return null;
+
+                const range = selection.getRangeAt(0);
+                const selectedText = range.toString();
+                
+                return {
+                    text: selectedText,
+                    startContainer: range.startContainer,
+                    startOffset: range.startOffset,
+                    endContainer: range.endContainer,
+                    endOffset: range.endOffset,
+                    hasSelection: selectedText.length > 0
+                };
+            }
+
+            // Restore saved selection
+            restoreSelection(savedSelection) {
+                if (!savedSelection) return false;
+
+                try {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    
+                    range.setStart(savedSelection.startContainer, savedSelection.startOffset);
+                    range.setEnd(savedSelection.endContainer, savedSelection.endOffset);
+                    
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    return true;
+                } catch (e) {
+                    return false;
                 }
+            }
+
+            toggleFormatting(type) {
+                // Restore the saved selection first
+                if (this.savedSelection) {
+                    this.restoreSelection(this.savedSelection);
+                }
+
+                // Use the same logic as keyboard shortcuts
+                const formatMap = {
+                    'bold': ['**', '**'],
+                    'italic': ['*', '*'],
+                    'strikethrough': ['~~', '~~'],
+                    'highlight': ['==', '==']
+                };
+
+                if (formatMap[type]) {
+                    const [start, end] = formatMap[type];
+                    this.editingController.insertMarkdownSyntax(start, end);
+                }
+                
+                // Clear saved selection after use
+                this.savedSelection = null;
+                
                 this.updateButtonStates();
             }
 
@@ -2973,7 +3188,36 @@
             }
 
             insertHorizontalRule() {
-                this.editingController.insertMarkdownSyntax('\n---\n');
+                const currentLine = this.editingController.getCurrentLineElement();
+                if (!currentLine) return;
+
+                // Ensure line is in edit mode
+                if (!currentLine.classList.contains('editing')) {
+                    this.editingController.makeLineEditable(currentLine);
+                }
+
+                // Insert --- on a new line
+                const newLineDiv = document.createElement('div');
+                newLineDiv.className = 'editor-line editing';
+                newLineDiv.textContent = '---';
+                
+                currentLine.parentNode.insertBefore(newLineDiv, currentLine.nextSibling);
+                
+                // Create another new line after the HR for typing
+                const afterLineDiv = document.createElement('div');
+                afterLineDiv.className = 'editor-line editing';
+                afterLineDiv.textContent = '\u200B';
+                
+                newLineDiv.parentNode.insertBefore(afterLineDiv, newLineDiv.nextSibling);
+                
+                // Update line indices
+                this.editingController.updateLineIndices();
+                
+                // Position cursor in the line after the HR
+                setTimeout(() => {
+                    this.editingController.setCursorInLine(afterLineDiv, 0);
+                    this.editingController.currentEditingLineElement = afterLineDiv;
+                }, 10);
             }
 
             updateButtonStates() {
