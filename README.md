@@ -5,7 +5,7 @@ A single-pane, lightweight Markdown editor that runs **entirely in your browser*
 
 ---
 
-## 🧭 Overview
+## Overview
 **Quartext** is a minimalist Markdown editor built for *speed and simplicity*.  
 Unlike full-featured apps such as Obsidian or MarkText, Quartext focuses on **instant note-taking**
 (jotting down quick thoughts, lists, or ideas)
@@ -14,7 +14,7 @@ It’s your **digital sticky note pad** — open the tab, type, and go.
 
 ---
 
-## ✏️ Features
+## Features
 - **Keyboard Shortcuts:**  
   - `Ctrl + B` -> Bold  
   - `Ctrl + I` -> Italic  
@@ -31,7 +31,7 @@ It’s your **digital sticky note pad** — open the tab, type, and go.
 # Header 1
 ## Header 2
 ### Header 3
-✅ Headers are collapsible!
+Headers are collapsible!
 
 **Bold** · *Italic* · ==Highlight== · ~~Strikethrough~~
 
