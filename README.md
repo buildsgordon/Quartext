@@ -1,7 +1,8 @@
 # Quartext  
 A single-pane, lightweight Markdown editor that runs **entirely in your browser**.  
 
-[**🌐 Live Demo**](https://buildsgordon.github.io/Quartext/)  
+[**🌐 Live Demo**](https://buildsgordon.github.io/Quartext/) 
+[Downloadhere](https://github.com/buildsgordon/Quartext/releases/download/v2.0.0/Production2.html)
 
 ---
 
