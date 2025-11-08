@@ -48,7 +48,8 @@ It’s your **digital sticky note pad** — open the tab, type, and go.
 
 Quartext isn’t designed for heavy research or long documents.
 It's always there when you need it, and it always work, even without wifi!
-⚠️ Known Issues
+
+⚠️ Known Issues:
 Some cases require clicking a “broken” line and clicking off to correct rendering.
 Collapsed header states aren’t preserved after reload.
 
