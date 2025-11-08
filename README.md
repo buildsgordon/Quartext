@@ -43,6 +43,7 @@ It’s your **digital sticky note pad** — open the tab, type, and go.
 
 --- Separators  
 ---
+```
 # Philosophy
 
 Quartext isn’t designed for heavy research or long documents.
