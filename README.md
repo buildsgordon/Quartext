@@ -54,6 +54,6 @@ Some cases require clicking a “broken” line and clicking off to correct rend
 
 Collapsed header states aren’t preserved after reload.
 
-We’d love your feedback!
+I'd love your feedback!
 [Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSfDvSNYzJ1SVojtWGv2Lo74-unS0w3X5ngwWNc4lbLCZ6IM1w/viewform)
 For collaboration or business inquiries: buildsgordon@gmail.com
