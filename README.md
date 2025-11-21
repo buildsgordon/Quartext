@@ -7,7 +7,7 @@ It's made with vanilla JavaScript, modern HTML5, and CSS and packed in an easy-t
 
 [**Live Demo**](https://buildsgordon.github.io/Quartext/) 
 
-[Downloadhere](https://github.com/buildsgordon/Quartext/releases/download/v3.0.0/QuartextV3.html)
+[Download here](https://github.com/buildsgordon/Quartext/releases/download/v3.0.0/QuartextV3.html)
 
 ---
 
@@ -21,7 +21,7 @@ Unlike full-featured apps such as Obsidian or MarkText, Quartext focuses on **in
 ## Features
 - Single-page, live Markdown preview  
 - Three modes: **Edit** (type & preview), **View** (formatted read-only), **Source** (raw Markdown)  
-- Minimap(VS CODE) & line numbering  
+- Minimap(VS CODE style) & line numbering  
 - Auto-save via localStorage (using StorageManager.persist())  
 - Export as .md
 - Keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+S)  
@@ -57,8 +57,8 @@ Quartext isn’t designed for heavy research or long documents.
 It's always there when you need it, and it will always work, even without wifi!
 
 ⚠️ Known Issues:
-Some cases require clicking a “broken” line and clicking off to correct rendering.
-Notes are stored as plain text in localStorage(No sensitive data + don't clear broser cache) -> Export when you need to
+Some cases require clicking a “broken” line (not rendering) and clicking off to correct rendering.
+Notes are stored as plain text in localStorage(No sensitive data + **export before clearing browser cache**)
 There’s no full version history or snapshot system yet.
 Limited support for files > 2MB
 Collapsed header states aren’t preserved after reload.
