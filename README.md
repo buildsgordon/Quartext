@@ -57,11 +57,11 @@ Quartext isn’t designed for heavy research or long documents.
 It's always there when you need it, and it will always work, even without wifi!
 
 ⚠️ Known Issues:
-Some cases require clicking a “broken” line (not rendering) and clicking off to correct rendering.
-Notes are stored as plain text in localStorage(No sensitive data + **export before clearing browser cache**)
-There’s no full version history or snapshot system yet.
-Limited support for files > 2MB
-Collapsed header states aren’t preserved after reload.
+- Some cases require clicking a “broken” line (not rendering) and clicking off to correct rendering.
+- Notes are stored as plain text in localStorage(No sensitive data + **export before clearing browser cache**)
+- There’s no full version history or snapshot system yet.
+- Limited support for files > 2MB
+- Collapsed header states aren’t preserved after reload.
 
 I'd love your feedback!
 [Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSchIUP0AwQ6Cm89Ru1QYdfAKE78Lw_CmVa9rAmn7YPJHHIlKg/viewform?usp=header)
