@@ -1,5 +1,5 @@
 # Quartext  
-**Quartext: Always Ready, Always There**
+**Quartext: Capture the impossible**
 
 Quartext is a single-pane, in-browser Markdown editor thats fully local.
 
