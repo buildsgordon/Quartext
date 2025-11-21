@@ -1,7 +1,11 @@
 # Quartext  
-A single-pane, lightweight Markdown editor that runs **entirely in your browser**.  
+**Quartext: Always Ready, Always There**
 
-[**🌐 Live Demo**](https://buildsgordon.github.io/Quartext/) 
+Quartext is a single-pane, in-browser Markdown editor thats fully local.
+
+It's made with vanilla JavaScript, modern HTML5, and CSS and packed in an easy-to-download HTML file.
+
+[**Live Demo**](https://buildsgordon.github.io/Quartext/) 
 
 [Downloadhere](https://github.com/buildsgordon/Quartext/releases/download/v3.0.0/QuartextV3.html)
 
@@ -15,14 +19,14 @@ Unlike full-featured apps such as Obsidian or MarkText, Quartext focuses on **in
 ---
 
 ## Features
-- **Keyboard Shortcuts:**  
-  - `Ctrl + B` -> Bold  
-  - `Ctrl + I` -> Italic  
-  - `Ctrl + Shift + C` -> Copy all  
-- **Collapsible Headings** for organized navigation  
-- **Autosave** (to your browser)
-- **Line Numbers** for structure
-- **Light/Dark Theme**   
+- Single-page, live Markdown preview  
+- Three modes: **Edit** (type & preview), **View** (formatted read-only), **Source** (raw Markdown)  
+- Minimap(VS CODE) & line numbering  
+- Auto-save via localStorage (using StorageManager.persist())  
+- Export as .md
+- Keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+S)  
+- Settings panel: light/dark theme, fonts, minimap toggle, margins, and more  
+- Embeds: images, code blocks, tables  
 
 ---
 
@@ -43,6 +47,9 @@ Headers are collapsible!
 
 --- Separators  
 ---
+Code blocks(beta) with ``` to start and ``` to end.
+Tables: Insert Only, no manual recognition
+Images: ![alt text](image_url)
 ```
 # Philosophy
 
@@ -51,9 +58,12 @@ It's always there when you need it, and it will always work, even without wifi!
 
 ⚠️ Known Issues:
 Some cases require clicking a “broken” line and clicking off to correct rendering.
-
+Notes are stored as plain text in localStorage(No sensitive data + don't clear broser cache) -> Export when you need to
+There’s no full version history or snapshot system yet.
+Limited support for files > 2MB
 Collapsed header states aren’t preserved after reload.
 
 I'd love your feedback!
-[Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSfDvSNYzJ1SVojtWGv2Lo74-unS0w3X5ngwWNc4lbLCZ6IM1w/viewform)
+[Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSchIUP0AwQ6Cm89Ru1QYdfAKE78Lw_CmVa9rAmn7YPJHHIlKg/viewform?usp=header)
 For collaboration or business inquiries: buildsgordon@gmail.com
+
