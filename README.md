@@ -49,7 +49,7 @@ Headers are collapsible!
 ---
 Code blocks(beta) with ``` to start and ``` to end.
 Tables: Insert Only, no manual recognition
-Images: ![alt text](image_url)
+Images: ![text](image_url)
 ```
 # Philosophy
 
