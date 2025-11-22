@@ -5,7 +5,7 @@ Quartext is a single-pane, in-browser Markdown editor thats fully local.
 
 It's made with vanilla JavaScript, modern HTML5, and CSS and packed in an easy-to-download HTML file.
 
-[**Live Demo**](https://buildsgordon.github.io/Quartext/) 
+[**Live Demo**](https://buildsgordon.github.io/Quartext/index.html) 
 
 [**Download here**](https://github.com/buildsgordon/Quartext/releases/download/v4.0.0/Quartextv4.html)
 
