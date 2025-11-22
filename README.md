@@ -7,7 +7,7 @@ It's made with vanilla JavaScript, modern HTML5, and CSS and packed in an easy-t
 
 [**Live Demo**](https://buildsgordon.github.io/Quartext/) 
 
-[**Download here**](https://github.com/buildsgordon/Quartext/releases/download/v3.0.0/QuartextV3.html)
+[**Download here**](https://github.com/buildsgordon/Quartext/releases/download/v4.0.0/Quartextv4.html)
 
 ---
 
